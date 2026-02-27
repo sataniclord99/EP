@@ -1,0 +1,51 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,.1);
+}
+
+.table {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+
+.table thead th {
+    background-color: #343a40;
+    color: white;
+    border-bottom: none;
+}
+
+.btn-sm {
+    margin: 2px;
+}
+
+.alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}

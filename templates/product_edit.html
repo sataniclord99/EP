@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{% if product %}Редактирование{% else %}Добавление{% endif %} продукции</h1>
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post" class="mt-4">
+            <div class="mb-3">
+                <label for="name" class="form-label">Наименование</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ product.name if product else '' }}" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="product_type_id" class="form-label">Тип продукции</label>
+                <select class="form-control" id="product_type_id" name="product_type_id" required>
+                    <option value="">Выберите тип</option>
+                    {% for type in product_types %}
+                    <option value="{{ type.id }}" {% if product and product.product_type_id == type.id %}selected{% endif %}>
+                        {{ type.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="article" class="form-label">Артикул</label>
+                <input type="text" class="form-control" id="article" name="article" value="{{ product.article if product else '' }}" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="min_price" class="form-label">Минимальная стоимость</label>
+                <input type="number" class="form-control" id="min_price" name="min_price" value="{{ product.min_price if product else '' }}" step="0.01" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="material_type_id" class="form-label">Основной материал</label>
+                <select class="form-control" id="material_type_id" name="material_type_id" required>
+                    <option value="">Выберите материал</option>
+                    {% for material in material_types %}
+                    <option value="{{ material.id }}" {% if product and product.material_type_id == material.id %}selected{% endif %}>
+                        {{ material.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="/products" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
+    
+    {% if workshops %}
+    <div class="col-md-6">
+        <h3>Цеха для производства</h3>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Цех</th>
+                    <th>Тип цеха</th>
+                    <th>Время (ч)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for workshop in workshops %}
+                <tr>
+                    <td>{{ workshop.workshop_name }}</td>
+                    <td>{{ workshop.workshop_type }}</td>
+                    <td>{{ workshop.hours }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <a href="/products/{{ product_id }}/workshops" class="btn btn-sm btn-info">Редактировать цеха</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

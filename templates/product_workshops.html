@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Цеха для производства</h1>
+<h3>{{ product.name }}</h3>
+<p>Тип: {{ product.product_type_name }} | Материал: {{ product.material_name }}</p>
+
+<form method="post" action="/products/{{ product.id }}/workshops/update">
+    <div class="table-responsive mt-4">
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Цех</th>
+                    <th>Тип цеха</th>
+                    <th>Кол-во человек</th>
+                    <th>Время изготовления (часы)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for workshop in workshops %}
+                <tr>
+                    <td>{{ workshop.name }}</td>
+                    <td>{{ workshop.workshop_type }}</td>
+                    <td>{{ workshop.employee_count }}</td>
+                    <td>
+                        <input type="number" 
+                               name="hours_{{ workshop.id }}" 
+                               value="{{ workshop.hours if workshop.hours else '' }}" 
+                               step="0.1" 
+                               min="0"
+                               class="form-control form-control-sm"
+                               style="width: 100px;">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="/products/edit/{{ product.id }}" class="btn btn-secondary">Назад к продукции</a>
+</form>
+{% endblock %}

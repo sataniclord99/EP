@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Список цехов</h1>
+
+<div class="table-responsive mt-4">
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Название цеха</th>
+                <th>Тип цеха</th>
+                <th>Количество человек</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for workshop in workshops %}
+            <tr>
+                <td>{{ workshop.id }}</td>
+                <td>{{ workshop.name }}</td>
+                <td>{{ workshop.workshop_type }}</td>
+                <td>{{ workshop.employee_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

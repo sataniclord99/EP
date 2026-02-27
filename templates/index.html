@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Добро пожаловать в систему управления продукцией</h1>
+        <p class="lead">Выберите раздел для работы:</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Продукция</h5>
+                <p class="card-text">Просмотр, добавление и редактирование информации о продукции</p>
+                <a href="/products" class="btn btn-primary">Перейти к продукции</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Цеха</h5>
+                <p class="card-text">Просмотр списка цехов и информации о них</p>
+                <a href="/workshops" class="btn btn-primary">Перейти к цехам</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
