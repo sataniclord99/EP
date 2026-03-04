@@ -1,30 +1,74 @@
 {% extends "base.html" %}
 
+{% block title %}Главная - Мебельная компания «Комфорт»{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h1>Добро пожаловать в систему управления продукцией</h1>
-        <p class="lead">Выберите раздел для работы:</p>
+<h1>Добро пожаловать в систему управления продукцией</h1>
+
+<div class="row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px;">
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Наша продукция</h3>
+        </div>
+        <div class="card-body">
+            <p>Просматривайте и управляйте ассортиментом мебели. В каталоге представлены современные и классические модели из натуральных материалов.</p>
+            <a href="/products" class="btn btn-primary">Перейти к продукции</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Производственные цеха</h3>
+        </div>
+        <div class="card-body">
+            <p>Информация о цехах, их специализации и количестве сотрудников. Отслеживайте загрузку производства.</p>
+            <a href="/workshops" class="btn btn-primary">Перейти к цехам</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Статистика</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Всего продукции:</strong> {{ products_count }}</p>
+            <p><strong>Всего цехов:</strong> {{ workshops_count }}</p>
+            <p><strong>Типов материалов:</strong> {{ material_types_count }}</p>
+            <p><strong>Типов продукции:</strong> {{ product_types_count }}</p>
+        </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Продукция</h5>
-                <p class="card-text">Просмотр, добавление и редактирование информации о продукции</p>
-                <a href="/products" class="btn btn-primary">Перейти к продукции</a>
-            </div>
-        </div>
+<div class="card" style="margin-top: 30px;">
+    <div class="card-header">
+        <h3 style="margin: 0;">Новинки продукции</h3>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Цеха</h5>
-                <p class="card-text">Просмотр списка цехов и информации о них</p>
-                <a href="/workshops" class="btn btn-primary">Перейти к цехам</a>
-            </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Наименование</th>
+                        <th>Тип</th>
+                        <th>Артикул</th>
+                        <th>Мин. стоимость</th>
+                        <th>Основной материал</th>
+                        <th>Время изготовления</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in latest_products %}
+                    <tr>
+                        <td>{{ product.name }}</td>
+                        <td><span class="badge badge-secondary">{{ product.product_type_name }}</span></td>
+                        <td>{{ product.article }}</td>
+                        <td>{{ product.min_price|int }} руб.</td>
+                        <td>{{ product.material_name }}</td>
+                        <td><span class="badge badge-primary">{{ product.total_hours|int }} ч</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>

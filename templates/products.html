@@ -1,43 +1,58 @@
 {% extends "base.html" %}
 
+{% block title %}Продукция - Мебельная компания «Комфорт»{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Список продукции</h1>
-    <a href="/products/add" class="btn btn-success">Добавить продукцию</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+    <h1>Каталог продукции</h1>
+    <a href="/products/add" class="btn btn-primary">+ Добавить продукцию</a>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Наименование</th>
-                <th>Тип продукции</th>
-                <th>Артикул</th>
-                <th>Мин. стоимость</th>
-                <th>Основной материал</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in products %}
-            <tr>
-                <td>{{ product.id }}</td>
-                <td>{{ product.name }}</td>
-                <td>{{ product.product_type_name }}</td>
-                <td>{{ product.article }}</td>
-                <td>{{ product.min_price|int }} руб.</td>
-                <td>{{ product.material_name }}</td>
-                <td>
-                    <a href="/products/edit/{{ product.id }}" class="btn btn-sm btn-primary">Редактировать</a>
-                    <a href="/products/{{ product.id }}/workshops" class="btn btn-sm btn-info">Цеха</a>
-                    <form action="/products/delete/{{ product.id }}" method="post" style="display: inline;" onsubmit="return confirm('Вы уверены?')">
-                        <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="row">
+    {% for product in products %}
+    <div class="product-card">
+        <div class="product-header">
+            <span class="product-title">{{ product.name }}</span>
+            <span class="product-article">Арт. {{ product.article }}</span>
+        </div>
+        
+        <div class="product-info">
+            <div class="product-info-item">
+                <span class="product-info-label">Тип продукции</span>
+                <span class="product-info-value">
+                    <span class="badge badge-secondary">{{ product.product_type_name }}</span>
+                </span>
+            </div>
+            <div class="product-info-item">
+                <span class="product-info-label">Минимальная стоимость</span>
+                <span class="product-info-value">{{ product.min_price|int }} ₽</span>
+            </div>
+            <div class="product-info-item">
+                <span class="product-info-label">Основной материал</span>
+                <span class="product-info-value">{{ product.material_name }}</span>
+            </div>
+            <div class="product-info-item">
+                <span class="product-info-label">Потери сырья</span>
+                <span class="product-info-value">{{ (product.loss_percentage * 100)|int }}%</span>
+            </div>
+        </div>
+        
+        <div class="product-time">
+            <div class="time-icon"></div>
+            <span class="time-value">Общее время изготовления: {{ product.total_hours|int }} часов</span>
+            <span style="margin-left: auto; font-size: 0.875rem; color: #666;">
+                ({{ product.workshops_count }} цех{% if product.workshops_count != 1 %}ов{% endif %})
+            </span>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
+            <a href="/products/{{ product.id }}" class="btn btn-primary btn-sm">Подробнее</a>
+            <a href="/products/edit/{{ product.id }}" class="btn btn-secondary btn-sm">Редактировать</a>
+            <form action="/products/delete/{{ product.id }}" method="post" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту продукцию?')">
+                <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}

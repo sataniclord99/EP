@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Мебельная компания «Комфорт»{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="/products" class="btn btn-secondary">← Назад к списку</a>
+</div>
+
+<h1>{{ product.name }}</h1>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
+    <!-- Основная информация -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Основная информация</h3>
+        </div>
+        <div class="card-body">
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 500; width: 200px;">Артикул:</td>
+                    <td>{{ product.article }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 500;">Тип продукции:</td>
+                    <td><span class="badge badge-secondary">{{ product.product_type_name }}</span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 500;">Основной материал:</td>
+                    <td>{{ product.material_name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 500;">Потери сырья:</td>
+                    <td>{{ (product.loss_percentage * 100)|int }}%</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 500;">Минимальная стоимость:</td>
+                    <td><strong>{{ product.min_price|int }} ₽</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Время изготовления -->
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Время изготовления</h3>
+        </div>
+        <div class="card-body">
+            <div style="text-align: center; padding: 20px; background-color: var(--secondary-bg); border-radius: 8px;">
+                <div style="font-size: 3rem; font-weight: 700; color: var(--accent-color);">
+                    {{ total_hours|int }}
+                </div>
+                <div style="font-size: 1.2rem; color: #666;">часов</div>
+                <div style="margin-top: 10px; color: #666;">({{ workshops_count }} цехов)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Технологическая карта -->
+<div class="card" style="margin-top: 30px;">
+    <div class="card-header">
+        <h3 style="margin: 0;">Технологическая карта производства</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Цех</th>
+                        <th>Тип цеха</th>
+                        <th>Количество человек</th>
+                        <th>Время (часов)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for workshop in workshops %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ workshop.name }}</strong></td>
+                        <td><span class="badge badge-secondary">{{ workshop.workshop_type }}</span></td>
+                        <td>{{ workshop.employee_count }} чел.</td>
+                        <td>
+                            <span class="badge badge-primary">{{ workshop.hours }} ч</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background-color: var(--secondary-bg); font-weight: 600;">
+                    <tr>
+                        <td colspan="4" style="text-align: right;">ИТОГО:</td>
+                        <td>{{ total_hours|int }} часов</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+    <a href="/products/edit/{{ product.id }}" class="btn btn-primary">Редактировать</a>
+    <a href="/products/{{ product.id }}/workshops" class="btn btn-secondary">Редактировать цеха</a>
+</div>
+{% endblock %}
