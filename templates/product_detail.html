@@ -3,12 +3,16 @@
 {% block title %}{{ product.name }} - Мебельная компания «Комфорт»{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 20px;">
-    <a href="/products" class="btn btn-secondary">← Назад к списку</a>
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <a href="javascript:history.back()" class="btn btn-secondary">← Назад</a>
+    <div>
+        <a href="{{ url_for('products') }}" class="btn btn-secondary">К списку продукции</a>
+    </div>
 </div>
 
 <h1>{{ product.name }}</h1>
 
+{% if product %}
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
     <!-- Основная информация -->
     <div class="card">
@@ -19,7 +23,7 @@
             <table style="width: 100%;">
                 <tr>
                     <td style="padding: 10px 0; font-weight: 500; width: 200px;">Артикул:</td>
-                    <td>{{ product.article }}</td>
+                    <td><strong>{{ product.article }}</strong></td>
                 </tr>
                 <tr>
                     <td style="padding: 10px 0; font-weight: 500;">Тип продукции:</td>
@@ -35,7 +39,7 @@
                 </tr>
                 <tr>
                     <td style="padding: 10px 0; font-weight: 500;">Минимальная стоимость:</td>
-                    <td><strong>{{ product.min_price|int }} ₽</strong></td>
+                    <td><strong style="font-size: 1.2rem; color: var(--accent-color);">{{ "%.2f"|format(product.min_price) }} ₽</strong></td>
                 </tr>
             </table>
         </div>
@@ -52,7 +56,7 @@
                     {{ total_hours|int }}
                 </div>
                 <div style="font-size: 1.2rem; color: #666;">часов</div>
-                <div style="margin-top: 10px; color: #666;">({{ workshops_count }} цехов)</div>
+                <div style="margin-top: 10px; color: #666;">({{ workshops_count }} цех{% if workshops_count != 1 %}ов{% endif %})</div>
             </div>
         </div>
     </div>
@@ -60,10 +64,14 @@
 
 <!-- Технологическая карта -->
 <div class="card" style="margin-top: 30px;">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0;">Технологическая карта производства</h3>
+        <a href="{{ url_for('product_workshops', product_id=product.id) }}" class="btn btn-primary btn-sm">
+            Редактировать цеха
+        </a>
     </div>
     <div class="card-body">
+        {% if workshops %}
         <div class="table-responsive">
             <table class="table">
                 <thead>
@@ -96,11 +104,29 @@
                 </tfoot>
             </table>
         </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; background-color: var(--secondary-bg); border-radius: 8px;">
+            <p style="font-size: 1.2rem; color: #666;">Для данного продукта не назначены цеха</p>
+            <a href="{{ url_for('product_workshops', product_id=product.id) }}" class="btn btn-primary" style="margin-top: 20px;">
+                Назначить цеха
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
 <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
-    <a href="/products/edit/{{ product.id }}" class="btn btn-primary">Редактировать</a>
-    <a href="/products/{{ product.id }}/workshops" class="btn btn-secondary">Редактировать цеха</a>
+    <a href="{{ url_for('edit_product', id=product.id) }}" class="btn btn-primary">Редактировать</a>
+    <form action="{{ url_for('delete_product', id=product.id) }}" method="post" style="display: inline;" 
+          onsubmit="return confirm('Вы уверены, что хотите удалить продукт «{{ product.name }}»?\nЭто действие нельзя отменить.')">
+        <button type="submit" class="btn btn-danger">Удалить</button>
+    </form>
 </div>
+{% else %}
+<div class="alert alert-danger">
+    <h3>Продукт не найден</h3>
+    <p>Запрашиваемый продукт не существует или был удален.</p>
+    <a href="{{ url_for('products') }}" class="btn btn-primary">Вернуться к списку продукции</a>
+</div>
+{% endif %}
 {% endblock %}

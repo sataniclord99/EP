@@ -1,78 +1,192 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h1>{% if product %}Редактирование{% else %}Добавление{% endif %} продукции</h1>
+{% block title %}
+    {% if is_editing %}
+        Редактирование продукции - Мебельная компания «Комфорт»
+    {% else %}
+        Добавление продукции - Мебельная компания «Комфорт»
+    {% endif %}
+{% endblock %}
 
-<div class="row">
-    <div class="col-md-6">
-        <form method="post" class="mt-4">
-            <div class="mb-3">
-                <label for="name" class="form-label">Наименование</label>
-                <input type="text" class="form-control" id="name" name="name" value="{{ product.name if product else '' }}" required>
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="javascript:history.back()" class="btn btn-secondary">← Назад</a>
+</div>
+
+<h1>
+    {% if is_editing %}
+        Редактирование продукции
+    {% else %}
+        Добавление новой продукции
+    {% endif %}
+</h1>
+
+<div class="card" style="max-width: 600px; margin: 30px auto;">
+    <div class="card-header">
+        <h3 style="margin: 0;">
+            {% if is_editing %}
+                Редактирование: {{ product.name if product else '' }}
+            {% else %}
+                Заполните информацию о продукции
+            {% endif %}
+        </h3>
+    </div>
+    <div class="card-body">
+        <form method="post" onsubmit="return validateForm()">
+            <!-- Артикул -->
+            <div class="form-group">
+                <label for="article" class="form-label">
+                    Артикул <span style="color: #dc3545;">*</span>
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="article" 
+                       name="article" 
+                       value="{{ product.article if product and product.article else '' }}"
+                       maxlength="50"
+                       required
+                       placeholder="Например: 1549922"
+                       pattern="[A-Za-z0-9-]+"
+                       title="Артикул может содержать только буквы, цифры и дефис">
+                <small class="form-text" style="color: #666; margin-top: 5px;">
+                    Артикул должен быть уникальным, может содержать буквы, цифры и дефис
+                </small>
             </div>
             
-            <div class="mb-3">
-                <label for="product_type_id" class="form-label">Тип продукции</label>
+            <!-- Наименование -->
+            <div class="form-group">
+                <label for="name" class="form-label">
+                    Наименование <span style="color: #dc3545;">*</span>
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="name" 
+                       name="name" 
+                       value="{{ product.name if product and product.name else '' }}"
+                       maxlength="200"
+                       required
+                       placeholder="Введите полное наименование продукции">
+                <small class="form-text" style="color: #666; margin-top: 5px;">
+                    Максимальная длина: 200 символов
+                </small>
+            </div>
+            
+            <!-- Тип продукции -->
+            <div class="form-group">
+                <label for="product_type_id" class="form-label">
+                    Тип продукции <span style="color: #dc3545;">*</span>
+                </label>
                 <select class="form-control" id="product_type_id" name="product_type_id" required>
-                    <option value="">Выберите тип</option>
+                    <option value="">-- Выберите тип продукции --</option>
                     {% for type in product_types %}
-                    <option value="{{ type.id }}" {% if product and product.product_type_id == type.id %}selected{% endif %}>
+                    <option value="{{ type.id }}" 
+                            {% if product and product.product_type_id == type.id %}selected{% endif %}>
                         {{ type.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
             
-            <div class="mb-3">
-                <label for="article" class="form-label">Артикул</label>
-                <input type="text" class="form-control" id="article" name="article" value="{{ product.article if product else '' }}" required>
+            <!-- Минимальная стоимость -->
+            <div class="form-group">
+                <label for="min_price" class="form-label">
+                    Минимальная стоимость для партнера (₽) <span style="color: #dc3545;">*</span>
+                </label>
+                <input type="number" 
+                       class="form-control" 
+                       id="min_price" 
+                       name="min_price" 
+                       value="{{ product.min_price if product and product.min_price else '' }}"
+                       step="0.01" 
+                       min="0.01"
+                       required
+                       placeholder="0.00">
+                <small class="form-text" style="color: #666; margin-top: 5px;">
+                    Стоимость указывается в рублях с точностью до сотых. Минимальное значение: 0.01
+                </small>
             </div>
             
-            <div class="mb-3">
-                <label for="min_price" class="form-label">Минимальная стоимость</label>
-                <input type="number" class="form-control" id="min_price" name="min_price" value="{{ product.min_price if product else '' }}" step="0.01" required>
-            </div>
-            
-            <div class="mb-3">
-                <label for="material_type_id" class="form-label">Основной материал</label>
+            <!-- Основной материал -->
+            <div class="form-group">
+                <label for="material_type_id" class="form-label">
+                    Основной материал <span style="color: #dc3545;">*</span>
+                </label>
                 <select class="form-control" id="material_type_id" name="material_type_id" required>
-                    <option value="">Выберите материал</option>
+                    <option value="">-- Выберите основной материал --</option>
                     {% for material in material_types %}
-                    <option value="{{ material.id }}" {% if product and product.material_type_id == material.id %}selected{% endif %}>
+                    <option value="{{ material.id }}" 
+                            {% if product and product.material_type_id == material.id %}selected{% endif %}>
                         {{ material.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
             
-            <button type="submit" class="btn btn-primary">Сохранить</button>
-            <a href="/products" class="btn btn-secondary">Отмена</a>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                <button type="submit" class="btn btn-primary">
+                    {% if is_editing %}
+                        Сохранить изменения
+                    {% else %}
+                        Добавить продукт
+                    {% endif %}
+                </button>
+                <a href="javascript:history.back()" class="btn btn-secondary">Отмена</a>
+            </div>
         </form>
     </div>
-    
-    {% if workshops %}
-    <div class="col-md-6">
-        <h3>Цеха для производства</h3>
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th>Цех</th>
-                    <th>Тип цеха</th>
-                    <th>Время (ч)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for workshop in workshops %}
-                <tr>
-                    <td>{{ workshop.workshop_name }}</td>
-                    <td>{{ workshop.workshop_type }}</td>
-                    <td>{{ workshop.hours }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="/products/{{ product_id }}/workshops" class="btn btn-sm btn-info">Редактировать цеха</a>
-    </div>
-    {% endif %}
 </div>
+
+<script>
+function validateForm() {
+    // Дополнительная клиентская валидация
+    const article = document.getElementById('article').value.trim();
+    const name = document.getElementById('name').value.trim();
+    const price = document.getElementById('min_price').value;
+    const productType = document.getElementById('product_type_id').value;
+    const materialType = document.getElementById('material_type_id').value;
+    
+    let errors = [];
+    
+    if (!article) {
+        errors.push('Артикул не может быть пустым');
+    } else if (!/^[A-Za-z0-9-]+$/.test(article)) {
+        errors.push('Артикул может содержать только буквы, цифры и дефис');
+    }
+    
+    if (!name) {
+        errors.push('Наименование не может быть пустым');
+    }
+    
+    if (!productType) {
+        errors.push('Необходимо выбрать тип продукции');
+    }
+    
+    if (!materialType) {
+        errors.push('Необходимо выбрать основной материал');
+    }
+    
+    if (!price || parseFloat(price) <= 0) {
+        errors.push('Стоимость должна быть положительным числом');
+    }
+    
+    if (errors.length > 0) {
+        alert('Ошибки валидации:\n- ' + errors.join('\n- '));
+        return false;
+    }
+    
+    return confirm('{% if is_editing %}Сохранить изменения?{% else %}Добавить новый продукт?{% endif %}');
+}
+
+// Подсказки при вводе
+document.getElementById('article').addEventListener('input', function(e) {
+    this.value = this.value.toUpperCase();
+});
+
+document.getElementById('min_price').addEventListener('input', function(e) {
+    let value = parseFloat(this.value);
+    if (value < 0) {
+        this.value = 0;
+    }
+});
+</script>
 {% endblock %}
