@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Калькулятор сырья - Мебельная компания «Комфорт»{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="javascript:history.back()" class="btn btn-secondary">← Назад</a>
+</div>
+
+<h1>Калькулятор расчета сырья</h1>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Параметры расчета</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('calculate_material') }}" id="calculatorForm">
+                {% if product %}
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <div style="margin-bottom: 20px; padding: 15px; background-color: var(--secondary-bg); border-radius: 8px;">
+                    <p><strong>Продукт:</strong> {{ product.name }}</p>
+                    <p><strong>Тип продукции:</strong> {{ product.product_type_name }}</p>
+                    <p><strong>Основной материал:</strong> {{ product.material_name }}</p>
+                </div>
+                {% else %}
+                <div class="form-group">
+                    <label for="product_type_id" class="form-label">
+                        Тип продукции <span style="color: #dc3545;">*</span>
+                    </label>
+                    <select class="form-control" id="product_type_id" name="product_type_id" required>
+                        <option value="">-- Выберите тип продукции --</option>
+                        {% for type in product_types %}
+                        <option value="{{ type.id }}">{{ type.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="material_type_id" class="form-label">
+                        Тип материала <span style="color: #dc3545;">*</span>
+                    </label>
+                    <select class="form-control" id="material_type_id" name="material_type_id" required>
+                        <option value="">-- Выберите тип материала --</option>
+                        {% for material in material_types %}
+                        <option value="{{ material.id }}">{{ material.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="quantity" class="form-label">
+                        Количество продукции <span style="color: #dc3545;">*</span>
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="quantity" 
+                           name="quantity" 
+                           min="1"
+                           step="1"
+                           value="1"
+                           required>
+                    <small class="form-text" style="color: #666;">
+                        Целое положительное число (количество изделий)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="length" class="form-label">
+                        Длина изделия (м) <span style="color: #dc3545;">*</span>
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="length" 
+                           name="length" 
+                           step="0.01"
+                           min="0.01"
+                           value="2.0"
+                           required
+                           placeholder="Например: 2.5">
+                    <small class="form-text" style="color: #666;">
+                        Длина изделия в метрах (вещественное положительное число)
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="width" class="form-label">
+                        Ширина изделия (м) <span style="color: #dc3545;">*</span>
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="width" 
+                           name="width" 
+                           step="0.01"
+                           min="0.01"
+                           value="1.5"
+                           required
+                           placeholder="Например: 1.8">
+                    <small class="form-text" style="color: #666;">
+                        Ширина изделия в метрах (вещественное положительное число)
+                    </small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Рассчитать необходимое сырье
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Результат расчета</h3>
+        </div>
+        <div class="card-body" id="resultContainer">
+            {% if result is defined and result is not none %}
+                {% if result > 0 %}
+                <div style="text-align: center; padding: 20px; background-color: #d4edda; border-radius: 8px;">
+                    <div style="font-size: 1.2rem; color: #155724; margin-bottom: 10px;">
+                        Необходимое количество сырья:
+                    </div>
+                    <div style="font-size: 3rem; font-weight: 700; color: #28a745;">
+                        {{ result }}
+                    </div>
+                    <div style="color: #155724; margin-top: 10px;">
+                        квадратных метров
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: left; padding: 15px; background-color: white; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">Детали расчета:</h4>
+                        
+                        {% if product_type_name is defined %}
+                        <p style="margin: 5px 0;"><strong>Тип продукции:</strong> {{ product_type_name }}</p>
+                        {% endif %}
+                        
+                        {% if material_type_name is defined %}
+                        <p style="margin: 5px 0;"><strong>Тип материала:</strong> {{ material_type_name }}</p>
+                        {% endif %}
+                        
+                        <p style="margin: 5px 0;"><strong>Количество:</strong> {{ quantity if quantity else 1 }} шт.</p>
+                        <p style="margin: 5px 0;"><strong>Размеры:</strong> {{ "%.2f"|format(length if length else 2.0) }} × {{ "%.2f"|format(width if width else 1.5) }} м</p>
+                        
+                        {% if material_per_unit is defined %}
+                        <p style="margin: 5px 0;">📊 <strong>Площадь изделия:</strong> {{ "%.2f"|format(length * width) }} м²</p>
+                        <p style="margin: 5px 0;">⚙️ <strong>Сырье на единицу:</strong> {{ "%.2f"|format(material_per_unit) }} м²</p>
+                        {% endif %}
+                        
+                        {% if total_without_loss is defined %}
+                        <p style="margin: 5px 0;">📦 <strong>Общее сырье (без потерь):</strong> {{ "%.2f"|format(total_without_loss) }} м²</p>
+                        {% endif %}
+                        
+                        {% if loss_percentage is defined %}
+                        <p style="margin: 5px 0;">⚠️ <strong>Потери сырья:</strong> +{{ "%.1f"|format(loss_percentage * 100) }}%</p>
+                        {% endif %}
+                        
+                        {% if total_with_loss is defined %}
+                        <p style="margin: 5px 0;">📐 <strong>С учетом потерь:</strong> {{ "%.2f"|format(total_with_loss) }} м²</p>
+                        {% endif %}
+                        
+                        <p style="margin: 10px 0 0 0; padding-top: 10px; border-top: 1px solid #ddd;">
+                            <strong style="color: #28a745;">✅ ИТОГО (с округлением вверх): {{ result }} м²</strong>
+                        </p>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 40px; background-color: #f8d7da; border-radius: 8px;">
+                    <div style="font-size: 2rem; margin-bottom: 20px;">❌</div>
+                    <p style="font-size: 1.2rem; color: #721c24;">
+                        {{ error_message|default('Ошибка расчета. Проверьте введенные данные.') }}
+                    </p>
+                </div>
+                {% endif %}
+            {% else %}
+            <div style="text-align: center; padding: 60px; background-color: var(--secondary-bg); border-radius: 8px;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🧮</div>
+                <p style="font-size: 1.2rem; color: #666;">
+                    Заполните форму и нажмите "Рассчитать"
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function validateCalculatorForm() {
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const length = parseFloat(document.getElementById('length').value);
+        const width = parseFloat(document.getElementById('width').value);
+        
+        const errors = [];
+        
+        if (quantity < 1) {
+            errors.push('Количество должно быть не менее 1');
+        }
+        
+        if (length <= 0) {
+            errors.push('Длина должна быть положительным числом');
+        }
+        
+        if (width <= 0) {
+            errors.push('Ширина должна быть положительным числом');
+        }
+        
+        const productTypeSelect = document.getElementById('product_type_id');
+        if (productTypeSelect && productTypeSelect.value === '') {
+            errors.push('Необходимо выбрать тип продукции');
+        }
+        
+        const materialTypeSelect = document.getElementById('material_type_id');
+        if (materialTypeSelect && materialTypeSelect.value === '') {
+            errors.push('Необходимо выбрать тип материала');
+        }
+        
+        if (errors.length > 0) {
+            alert('Ошибки валидации:\n- ' + errors.join('\n- '));
+            return false;
+        }
+        
+        return true;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('calculatorForm');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!validateCalculatorForm()) {
+                    event.preventDefault();
+                }
+            });
+        }
+        
+        const inputs = document.querySelectorAll('input[type="number"]');
+        inputs.forEach(function(input) {
+            input.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (value < 0) {
+                    this.value = 0;
+                }
+            });
+        });
+    });
+</script>
+
+<style>
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #355CBD;
+        box-shadow: 0 0 0 3px rgba(53, 93, 189, 0.1);
+    }
+    
+    .form-text {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #666;
+    }
+    
+    .btn-primary {
+        background-color: #355CBD;
+        color: white;
+        border: none;
+        padding: 0.75rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2a4a9c;
+    }
+    
+    .btn-secondary {
+        background-color: #D2DFFF;
+        color: #333;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #b8c9f0;
+    }
+    
+    .card {
+        background-color: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .card-header {
+        background-color: #D2DFFF;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 1rem;
+        font-weight: 600;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+</style>
+{% endblock %}

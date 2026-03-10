@@ -1,28 +1,180 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h1>Список цехов</h1>
+{% block title %}Цеха - Мебельная компания «Комфорт»{% endblock %}
 
-<div class="table-responsive mt-4">
-    <table class="table table-striped">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Название цеха</th>
-                <th>Тип цеха</th>
-                <th>Количество человек</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for workshop in workshops %}
-            <tr>
-                <td>{{ workshop.id }}</td>
-                <td>{{ workshop.name }}</td>
-                <td>{{ workshop.workshop_type }}</td>
-                <td>{{ workshop.employee_count }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="javascript:history.back()" class="btn btn-secondary">← Назад</a>
 </div>
+
+<h1>Производственные цеха</h1>
+
+<div class="row" style="margin-top: 30px;">
+    <div class="card" style="margin-bottom: 30px;">
+        <div class="card-header">
+            <h3 style="margin: 0;">Общая информация</h3>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;" id="statsContainer">
+            </div>
+        </div>
+    </div>
+
+    {% set workshop_types = {
+        'Проектирование': 'blue',
+        'Обработка': 'green',
+        'Сушка': 'orange',
+        'Сборка': 'purple'
+    } %}
+    
+    {% for type_name, color in workshop_types.items() %}
+        {% set type_workshops = workshops|selectattr('workshop_type', 'equalto', type_name)|list %}
+        {% if type_workshops %}
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">{{ type_name }}</h3>
+                <span class="badge" id="badge-{{ loop.index }}" style="color: white;">
+                    {{ type_workshops|length }} цех{% if type_workshops|length != 1 %}ов{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Название цеха</th>
+                                <th>Количество человек</th>
+                                <th>Задействовано в продукции</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for workshop in type_workshops %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <strong>{{ workshop.name }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge badge-primary">{{ workshop.employee_count }} чел.</span>
+                                </td>
+                                <td>
+                                    {% if workshop.products_count > 0 %}
+                                        <span class="badge badge-secondary">{{ workshop.products_count }} прод.</span>
+                                    {% else %}
+                                        <span style="color: #999;">не используется</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('workshop_detail', id=workshop.id) }}" 
+                                       class="btn btn-primary btn-sm">
+                                        Подробнее
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<style>
+    .badge-blue {
+        background-color: #355CBD;
+    }
+    .badge-green {
+        background-color: #28a745;
+    }
+    .badge-orange {
+        background-color: #fd7e14;
+    }
+    .badge-purple {
+        background-color: #6f42c1;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const colors = {
+            'Проектирование': 'badge-blue',
+            'Обработка': 'badge-green',
+            'Сушка': 'badge-orange',
+            'Сборка': 'badge-purple'
+        };
+        
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(function(card) {
+            const header = card.querySelector('.card-header');
+            if (header) {
+                const title = header.querySelector('h3');
+                const badge = header.querySelector('.badge');
+                if (title && badge) {
+                    const typeName = title.innerText.trim();
+                    if (colors[typeName]) {
+                        badge.classList.add(colors[typeName]);
+                    }
+                }
+            }
+        });
+        
+        const workshops = [];
+        const workshopRows = document.querySelectorAll('tbody tr');
+        
+        workshopRows.forEach(function(row) {
+            const cells = row.cells;
+            if (cells.length >= 3) {
+                const employeeText = cells[2].innerText;
+                const employeeMatch = employeeText.match(/(\d+)/);
+                if (employeeMatch) {
+                    workshops.push({
+                        employee_count: parseInt(employeeMatch[0])
+                    });
+                }
+            }
+        });
+        
+        const totalWorkshops = document.querySelectorAll('tbody tr').length;
+        const totalEmployees = workshops.reduce(function(sum, w) {
+            return sum + (w.employee_count || 0);
+        }, 0);
+        
+        const typeElements = document.querySelectorAll('.card-header h3');
+        const uniqueTypes = new Set();
+        typeElements.forEach(function(el) {
+            const typeName = el.innerText.trim();
+            if (typeName) {
+                uniqueTypes.add(typeName);
+            }
+        });
+        
+        const statsContainer = document.getElementById('statsContainer');
+        if (statsContainer) {
+            statsContainer.innerHTML = `
+                <div style="text-align: center; padding: 20px; background-color: var(--secondary-bg); border-radius: 8px;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #355CBD;">
+                        ${totalWorkshops}
+                    </div>
+                    <div style="color: #666;">Всего цехов</div>
+                </div>
+                <div style="text-align: center; padding: 20px; background-color: var(--secondary-bg); border-radius: 8px;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #355CBD;">
+                        ${totalEmployees}
+                    </div>
+                    <div style="color: #666;">Всего сотрудников</div>
+                </div>
+                <div style="text-align: center; padding: 20px; background-color: var(--secondary-bg); border-radius: 8px;">
+                    <div style="font-size: 2rem; font-weight: 700; color: #355CBD;">
+                        ${uniqueTypes.size}
+                    </div>
+                    <div style="color: #666;">Типов цехов</div>
+                </div>
+            `;
+        }
+    });
+</script>
 {% endblock %}

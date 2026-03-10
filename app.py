@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
+from flask import Flask, render_template, request, redirect, url_for, flash, abort, session, jsonify
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2 import errors as pg_errors
@@ -6,12 +6,14 @@ from config import Config
 import math
 import traceback
 from functools import wraps
+from material_calculator import MaterialCalculator
 
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = Config.SECRET_KEY
 
-# Декоратор для обработки ошибок базы данных
+material_calculator = MaterialCalculator()
+
 def handle_db_errors(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -53,27 +55,22 @@ def validate_product_data(data):
     """Валидация данных продукта"""
     errors = []
     
-    # Проверка артикула
     if not data.get('article'):
         errors.append("Артикул не может быть пустым")
     elif len(data['article']) > 50:
         errors.append("Артикул не может быть длиннее 50 символов")
     
-    # Проверка наименования
     if not data.get('name'):
         errors.append("Наименование не может быть пустым")
     elif len(data['name']) > 200:
         errors.append("Наименование не может быть длиннее 200 символов")
     
-    # Проверка типа продукта
     if not data.get('product_type_id'):
         errors.append("Необходимо выбрать тип продукции")
     
-    # Проверка материала
     if not data.get('material_type_id'):
         errors.append("Необходимо выбрать основной материал")
     
-    # Проверка стоимости
     try:
         price = float(data.get('min_price', 0))
         if price < 0:
@@ -81,7 +78,6 @@ def validate_product_data(data):
         elif price == 0:
             errors.append("Стоимость должна быть больше 0")
         else:
-            # Округляем до сотых
             data['min_price'] = round(price, 2)
     except (ValueError, TypeError):
         errors.append("Стоимость должна быть числом")
@@ -98,7 +94,6 @@ def calculate_total_hours(product_id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Получаем все цеха для данного продукта
         cur.execute("""
             SELECT COALESCE(SUM(hours), 0) as total
             FROM product_workshops
@@ -108,7 +103,6 @@ def calculate_total_hours(product_id):
         result = cur.fetchone()
         total = float(result['total']) if result and result['total'] else 0
         
-        # Округляем до целого числа (вверх, если есть дробная часть)
         return math.ceil(total) if total > 0 else 0
     
     except Exception as e:
@@ -131,7 +125,6 @@ def index():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Получаем статистику
         cur.execute("SELECT COUNT(*) FROM products")
         products_count = cur.fetchone()['count']
         
@@ -144,7 +137,6 @@ def index():
         cur.execute("SELECT COUNT(*) FROM product_types")
         product_types_count = cur.fetchone()['count']
         
-        # Получаем последние 5 продуктов с расчетом времени
         cur.execute("""
             SELECT p.*, pt.name as product_type_name, mt.name as material_name, mt.loss_percentage
             FROM products p
@@ -155,7 +147,6 @@ def index():
         """)
         latest_products = cur.fetchall()
         
-        # Рассчитываем время для каждого продукта
         for product in latest_products:
             product['total_hours'] = calculate_total_hours(product['id'])
         
@@ -192,7 +183,6 @@ def products():
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Получаем все продукты с дополнительной информацией
         cur.execute("""
             SELECT p.*, pt.name as product_type_name, mt.name as material_name, 
                    mt.loss_percentage,
@@ -204,7 +194,6 @@ def products():
         """)
         products = cur.fetchall()
         
-        # Рассчитываем время для каждого продукта
         for product in products:
             product['total_hours'] = calculate_total_hours(product['id'])
         
@@ -231,7 +220,6 @@ def product_detail(id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Получаем информацию о продукте
         cur.execute("""
             SELECT p.*, pt.name as product_type_name, pt.coefficient,
                    mt.name as material_name, mt.loss_percentage
@@ -246,7 +234,6 @@ def product_detail(id):
             flash(f'Продукт с ID {id} не найден', 'warning')
             return redirect(url_for('products'))
         
-        # Получаем цеха для этого продукта
         cur.execute("""
             SELECT w.*, pw.hours
             FROM workshops w
@@ -282,7 +269,6 @@ def add_product():
     conn = None
     cur = None
     
-    # Получаем данные для выпадающих списков (нужны и для GET, и для POST)
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -304,7 +290,6 @@ def add_product():
             conn.close()
     
     if request.method == 'POST':
-        # Валидация данных
         form_data = {
             'article': request.form.get('article', '').strip(),
             'name': request.form.get('name', '').strip(),
@@ -324,7 +309,6 @@ def add_product():
                                  material_types=material_types,
                                  is_editing=False)
         
-        # Сохранение в базу данных
         conn = None
         cur = None
         try:
@@ -371,7 +355,6 @@ def add_product():
             if conn:
                 conn.close()
     
-    # GET запрос - показываем пустую форму
     return render_template('product_edit.html', 
                          product=None,
                          product_types=product_types,
@@ -385,7 +368,6 @@ def edit_product(id):
     conn = None
     cur = None
     
-    # Получаем данные для выпадающих списков
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -407,7 +389,6 @@ def edit_product(id):
             conn.close()
     
     if request.method == 'POST':
-        # Валидация данных
         form_data = {
             'id': id,
             'article': request.form.get('article', '').strip(),
@@ -428,14 +409,12 @@ def edit_product(id):
                                  material_types=material_types,
                                  is_editing=True)
         
-        # Обновление в базе данных
         conn = None
         cur = None
         try:
             conn = get_db_connection()
             cur = conn.cursor()
             
-            # Проверяем существование продукта
             cur.execute("SELECT id FROM products WHERE id = %s", (id,))
             if not cur.fetchone():
                 flash(f'Продукт с ID {id} не найден', 'error')
@@ -474,7 +453,6 @@ def edit_product(id):
             if conn:
                 conn.close()
     
-    # GET запрос - получаем данные продукта для редактирования
     conn = None
     cur = None
     try:
@@ -521,7 +499,6 @@ def delete_product(id):
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Получаем информацию о продукте для сообщения
         cur.execute("SELECT name FROM products WHERE id = %s", (id,))
         product = cur.fetchone()
         
@@ -529,15 +506,12 @@ def delete_product(id):
             flash(f'Продукт с ID {id} не найден', 'error')
             return redirect(url_for('products'))
         
-        # Проверяем, есть ли связанные записи
         cur.execute("SELECT COUNT(*) FROM product_workshops WHERE product_id = %s", (id,))
         workshops_count = cur.fetchone()['count']
         
         if workshops_count > 0:
-            # Удаляем связанные записи (каскадное удаление в БД)
             cur.execute("DELETE FROM product_workshops WHERE product_id = %s", (id,))
         
-        # Удаляем продукт
         cur.execute("DELETE FROM products WHERE id = %s", (id,))
         conn.commit()
         
@@ -586,6 +560,56 @@ def workshops():
         if conn:
             conn.close()
 
+@app.route('/workshops/<int:id>')
+@handle_db_errors
+def workshop_detail(id):
+    """Детальная информация о цехе"""
+    conn = None
+    cur = None
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT * FROM workshops WHERE id = %s
+        """, (id,))
+        workshop = cur.fetchone()
+        
+        if not workshop:
+            flash(f'Цех с ID {id} не найден', 'warning')
+            return redirect(url_for('workshops'))
+        
+        cur.execute("""
+            SELECT p.*, pt.name as product_type_name, pw.hours,
+                   (SELECT SUM(hours) FROM product_workshops WHERE product_id = p.id) as total_hours
+            FROM products p
+            JOIN product_workshops pw ON p.id = pw.product_id
+            JOIN product_types pt ON p.product_type_id = pt.id
+            WHERE pw.workshop_id = %s
+            ORDER BY p.name
+        """, (id,))
+        products = cur.fetchall()
+        
+        total_hours = sum(p['hours'] for p in products) if products else 0
+        avg_hours = total_hours / len(products) if products else 0
+        
+        return render_template('workshop_detail.html',
+                             workshop=workshop,
+                             products=products,
+                             total_hours=total_hours,
+                             avg_hours=avg_hours)
+    
+    except Exception as e:
+        app.logger.error(f"Error in workshop_detail route: {traceback.format_exc()}")
+        flash('Ошибка при загрузке информации о цехе', 'error')
+        return redirect(url_for('workshops'))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 @app.route('/products/<int:product_id>/workshops', methods=['GET', 'POST'])
 @handle_db_errors
 def product_workshops(product_id):
@@ -598,7 +622,6 @@ def product_workshops(product_id):
             conn = get_db_connection()
             cur = conn.cursor()
             
-            # Проверяем существование продукта
             cur.execute("SELECT name FROM products WHERE id = %s", (product_id,))
             product = cur.fetchone()
             
@@ -606,10 +629,8 @@ def product_workshops(product_id):
                 flash(f'Продукт с ID {product_id} не найден', 'error')
                 return redirect(url_for('products'))
             
-            # Удаляем старые связи
             cur.execute("DELETE FROM product_workshops WHERE product_id = %s", (product_id,))
             
-            # Добавляем новые
             added_count = 0
             for key, value in request.form.items():
                 if key.startswith('hours_'):
@@ -645,12 +666,10 @@ def product_workshops(product_id):
             if conn:
                 conn.close()
     
-    # GET запрос - показываем форму
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         
-        # Информация о продукте
         cur.execute("""
             SELECT p.*, pt.name as product_type_name, mt.name as material_name
             FROM products p
@@ -664,7 +683,6 @@ def product_workshops(product_id):
             flash(f'Продукт с ID {product_id} не найден', 'warning')
             return redirect(url_for('products'))
         
-        # Все цеха с указанием времени изготовления
         cur.execute("""
             SELECT w.*, pw.hours
             FROM workshops w
@@ -681,6 +699,230 @@ def product_workshops(product_id):
         app.logger.error(f"Error loading workshops for product {product_id}: {traceback.format_exc()}")
         flash('Ошибка при загрузке данных', 'error')
         return redirect(url_for('products'))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+@app.route('/calculator', methods=['GET'])
+@handle_db_errors
+def material_calculator_page():
+    """Страница калькулятора сырья"""
+    conn = None
+    cur = None
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("SELECT id, name FROM product_types ORDER BY name")
+        product_types = cur.fetchall()
+        
+        cur.execute("SELECT id, name FROM material_types ORDER BY name")
+        material_types = cur.fetchall()
+        
+        return render_template('material_calculator.html',
+                             product_types=product_types,
+                             material_types=material_types,
+                             result=None,
+                             product=None)
+    
+    except Exception as e:
+        app.logger.error(f"Error loading calculator page: {traceback.format_exc()}")
+        flash('Ошибка при загрузке калькулятора', 'error')
+        return redirect(url_for('index'))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+@app.route('/calculator/product/<int:product_id>', methods=['GET'])
+@handle_db_errors
+def material_calculator_for_product(product_id):
+    """Калькулятор сырья для конкретного продукта"""
+    conn = None
+    cur = None
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT p.*, pt.name as product_type_name, mt.name as material_name
+            FROM products p
+            JOIN product_types pt ON p.product_type_id = pt.id
+            JOIN material_types mt ON p.material_type_id = mt.id
+            WHERE p.id = %s
+        """, (product_id,))
+        product = cur.fetchone()
+        
+        if not product:
+            flash(f'Продукт с ID {product_id} не найден', 'warning')
+            return redirect(url_for('products'))
+        
+        return render_template('material_calculator.html',
+                             product_types=[],
+                             material_types=[],
+                             product=product,
+                             result=None)
+    
+    except Exception as e:
+        app.logger.error(f"Error loading calculator for product: {traceback.format_exc()}")
+        flash('Ошибка при загрузке калькулятора', 'error')
+        return redirect(url_for('products'))
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+@app.route('/calculate', methods=['POST'])
+@handle_db_errors
+def calculate_material():
+    """Обработка расчета сырья"""
+    conn = None
+    cur = None
+    
+    try:
+        quantity = int(request.form.get('quantity', 1))
+        length = float(request.form.get('length', 0))
+        width = float(request.form.get('width', 0))
+        
+        if quantity <= 0 or length <= 0 or width <= 0:
+            flash('Все параметры должны быть положительными числами', 'error')
+            return redirect(url_for('material_calculator_page'))
+        
+        if 'product_id' in request.form and request.form['product_id']:
+            product_id = int(request.form['product_id'])
+            
+            result = material_calculator.calculate_for_product(
+                product_id, quantity, length, width
+            )
+            
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT p.*, pt.name as product_type_name, mt.name as material_name,
+                       pt.coefficient, mt.loss_percentage
+                FROM products p
+                JOIN product_types pt ON p.product_type_id = pt.id
+                JOIN material_types mt ON p.material_type_id = mt.id
+                WHERE p.id = %s
+            """, (product_id,))
+            product_data = cur.fetchone()
+            
+            if not product_data:
+                flash('Продукт не найден', 'error')
+                return redirect(url_for('products'))
+            
+            product_coef = float(product_data['coefficient'])
+            loss_percent = float(product_data['loss_percentage'])
+            
+            area = length * width
+            material_per_unit = area * product_coef
+            total_without_loss = material_per_unit * quantity
+            total_with_loss = total_without_loss * (1 + loss_percent)
+            
+            cur.execute("SELECT id, name FROM product_types ORDER BY name")
+            product_types = cur.fetchall()
+            
+            cur.execute("SELECT id, name FROM material_types ORDER BY name")
+            material_types = cur.fetchall()
+            
+            cur.close()
+            conn.close()
+            
+            if result > 0:
+                return render_template('material_calculator.html',
+                                     product=product_data,
+                                     product_types=product_types,
+                                     material_types=material_types,
+                                     result=result,
+                                     quantity=quantity,
+                                     length=length,
+                                     width=width,
+                                     material_per_unit=material_per_unit,
+                                     total_without_loss=total_without_loss,
+                                     total_with_loss=total_with_loss,
+                                     loss_percentage=loss_percent,
+                                     product_type_name=product_data['product_type_name'],
+                                     material_type_name=product_data['material_name'])
+            else:
+                return render_template('material_calculator.html',
+                                     product=product_data,
+                                     product_types=product_types,
+                                     material_types=material_types,
+                                     result=-1,
+                                     error_message="Ошибка расчета. Проверьте параметры.")
+        
+        else:
+            product_type_id = int(request.form.get('product_type_id', 0))
+            material_type_id = int(request.form.get('material_type_id', 0))
+            
+            if product_type_id == 0 or material_type_id == 0:
+                flash('Необходимо выбрать тип продукции и тип материала', 'error')
+                return redirect(url_for('material_calculator_page'))
+            
+            result = material_calculator.calculate_raw_material(
+                product_type_id, material_type_id, quantity, length, width
+            )
+            
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            cur.execute("SELECT id, name FROM product_types ORDER BY name")
+            product_types = cur.fetchall()
+            
+            cur.execute("SELECT id, name FROM material_types ORDER BY name")
+            material_types = cur.fetchall()
+            
+            cur.execute("SELECT name, coefficient FROM product_types WHERE id = %s", (product_type_id,))
+            product_data = cur.fetchone()
+            product_type_name = product_data['name'] if product_data else "Неизвестный тип"
+            product_coef = float(product_data['coefficient']) if product_data else 1.0
+            
+            cur.execute("SELECT name, loss_percentage FROM material_types WHERE id = %s", (material_type_id,))
+            material_data = cur.fetchone()
+            material_type_name = material_data['name'] if material_data else "Неизвестный материал"
+            loss_percent = float(material_data['loss_percentage']) if material_data else 0.0
+            
+            cur.close()
+            conn.close()
+            
+            if result > 0:
+                area = length * width
+                material_per_unit = area * product_coef
+                total_without_loss = material_per_unit * quantity
+                total_with_loss = total_without_loss * (1 + loss_percent)
+                
+                return render_template('material_calculator.html',
+                                     product_types=product_types,
+                                     material_types=material_types,
+                                     result=result,
+                                     quantity=quantity,
+                                     length=length,
+                                     width=width,
+                                     material_per_unit=material_per_unit,
+                                     total_without_loss=total_without_loss,
+                                     total_with_loss=total_with_loss,
+                                     loss_percentage=loss_percent,
+                                     product_type_name=product_type_name,
+                                     material_type_name=material_type_name,
+                                     product=None)
+            else:
+                return render_template('material_calculator.html',
+                                     product_types=product_types,
+                                     material_types=material_types,
+                                     result=-1,
+                                     error_message="Ошибка расчета. Проверьте параметры.",
+                                     product=None)
+    
+    except Exception as e:
+        app.logger.error(f"Error in calculate_material: {traceback.format_exc()}")
+        flash(f'Ошибка при расчете: {str(e)}', 'error')
+        return redirect(url_for('material_calculator_page'))
     finally:
         if cur:
             cur.close()

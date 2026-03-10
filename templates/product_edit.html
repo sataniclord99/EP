@@ -33,7 +33,6 @@
     </div>
     <div class="card-body">
         <form method="post" onsubmit="return validateForm()">
-            <!-- Артикул -->
             <div class="form-group">
                 <label for="article" class="form-label">
                     Артикул <span style="color: #dc3545;">*</span>
@@ -53,7 +52,6 @@
                 </small>
             </div>
             
-            <!-- Наименование -->
             <div class="form-group">
                 <label for="name" class="form-label">
                     Наименование <span style="color: #dc3545;">*</span>
@@ -71,7 +69,6 @@
                 </small>
             </div>
             
-            <!-- Тип продукции -->
             <div class="form-group">
                 <label for="product_type_id" class="form-label">
                     Тип продукции <span style="color: #dc3545;">*</span>
@@ -87,7 +84,6 @@
                 </select>
             </div>
             
-            <!-- Минимальная стоимость -->
             <div class="form-group">
                 <label for="min_price" class="form-label">
                     Минимальная стоимость для партнера (₽) <span style="color: #dc3545;">*</span>
@@ -106,7 +102,6 @@
                 </small>
             </div>
             
-            <!-- Основной материал -->
             <div class="form-group">
                 <label for="material_type_id" class="form-label">
                     Основной материал <span style="color: #dc3545;">*</span>
@@ -138,7 +133,6 @@
 
 <script>
 function validateForm() {
-    // Дополнительная клиентская валидация
     const article = document.getElementById('article').value.trim();
     const name = document.getElementById('name').value.trim();
     const price = document.getElementById('min_price').value;
@@ -177,7 +171,6 @@ function validateForm() {
     return confirm('{% if is_editing %}Сохранить изменения?{% else %}Добавить новый продукт?{% endif %}');
 }
 
-// Подсказки при вводе
 document.getElementById('article').addEventListener('input', function(e) {
     this.value = this.value.toUpperCase();
 });

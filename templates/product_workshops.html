@@ -1,43 +1,174 @@
 {% extends "base.html" %}
 
-{% block content %}
-<h1>Цеха для производства</h1>
-<h3>{{ product.name }}</h3>
-<p>Тип: {{ product.product_type_name }} | Материал: {{ product.material_name }}</p>
+{% block title %}Цеха для {{ product.name }} - Мебельная компания «Комфорт»{% endblock %}
 
-<form method="post" action="/products/{{ product.id }}/workshops/update">
-    <div class="table-responsive mt-4">
-        <table class="table table-striped">
-            <thead class="table-dark">
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <a href="javascript:history.back()" class="btn btn-secondary">← Назад</a>
+    <a href="{{ url_for('product_detail', id=product.id) }}" class="btn btn-secondary">
+        К информации о продукте
+    </a>
+</div>
+
+<h1>Цеха для производства</h1>
+<h3 style="color: #666; margin-bottom: 30px;">{{ product.name }}</h3>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 30px;">
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Информация о продукте</h3>
+        </div>
+        <div class="card-body">
+            <table style="width: 100%;">
                 <tr>
-                    <th>Цех</th>
-                    <th>Тип цеха</th>
-                    <th>Кол-во человек</th>
-                    <th>Время изготовления (часы)</th>
+                    <td style="padding: 5px 0; font-weight: 500;">Тип продукции:</td>
+                    <td>{{ product.product_type_name }}</td>
                 </tr>
-            </thead>
-            <tbody>
-                {% for workshop in workshops %}
                 <tr>
-                    <td>{{ workshop.name }}</td>
-                    <td>{{ workshop.workshop_type }}</td>
-                    <td>{{ workshop.employee_count }}</td>
-                    <td>
-                        <input type="number" 
-                               name="hours_{{ workshop.id }}" 
-                               value="{{ workshop.hours if workshop.hours else '' }}" 
-                               step="0.1" 
-                               min="0"
-                               class="form-control form-control-sm"
-                               style="width: 100px;">
-                    </td>
+                    <td style="padding: 5px 0; font-weight: 500;">Основной материал:</td>
+                    <td>{{ product.material_name }}</td>
                 </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <tr>
+                    <td style="padding: 5px 0; font-weight: 500;">Артикул:</td>
+                    <td>{{ product.article }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px 0; font-weight: 500;">Мин. стоимость:</td>
+                    <td>{{ product.min_price|int }} ₽</td>
+                </tr>
+            </table>
+        </div>
     </div>
-    
-    <button type="submit" class="btn btn-primary">Сохранить</button>
-    <a href="/products/edit/{{ product.id }}" class="btn btn-secondary">Назад к продукции</a>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Калькулятор сырья</h3>
+        </div>
+        <div class="card-body">
+            <p>Для расчета необходимого количества сырья используйте:</p>
+            <a href="{{ url_for('material_calculator_for_product', product_id=product.id) }}" 
+               class="btn btn-primary" style="width: 100%;">
+                Открыть калькулятор сырья
+            </a>
+        </div>
+    </div>
+</div>
+
+<form method="post" id="workshopsForm">
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Назначение времени в цехах</h3>
+        </div>
+        <div class="card-body">
+            <p style="margin-bottom: 20px; color: #666;">
+                Укажите время (в часах) для каждого цеха, задействованного в производстве продукта.
+                Оставьте поле пустым или укажите 0, если цех не используется.
+            </p>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Цех</th>
+                            <th>Тип цеха</th>
+                            <th>Кол-во человек</th>
+                            <th>Время изготовления (часы)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for workshop in workshops %}
+                        <tr>
+                            <td>
+                                <strong>{{ workshop.name }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary">{{ workshop.workshop_type }}</span>
+                            </td>
+                            <td>{{ workshop.employee_count }} чел.</td>
+                            <td>
+                                <input type="number" 
+                                       name="hours_{{ workshop.id }}" 
+                                       class="workshop-hours"
+                                       value="{{ workshop.hours if workshop.hours else '' }}" 
+                                       step="0.1" 
+                                       min="0"
+                                       class="form-control"
+                                       style="width: 120px;"
+                                       placeholder="часы">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot style="background-color: var(--secondary-bg); font-weight: 600;">
+                        <tr>
+                            <td colspan="3" style="text-align: right;">ИТОГО часов:</td>
+                            <td id="total-hours">0.0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <a href="{{ url_for('product_detail', id=product.id) }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </div>
+    </div>
 </form>
+
+<script>
+    function calculateTotal() {
+        let total = 0;
+        const inputs = document.querySelectorAll('.workshop-hours');
+        
+        inputs.forEach(function(input) {
+            const value = parseFloat(input.value);
+            if (!isNaN(value) && value > 0) {
+                total += value;
+            }
+        });
+        
+        document.getElementById('total-hours').textContent = total.toFixed(1);
+    }
+    
+    function validateWorkshopsForm() {
+        const inputs = document.querySelectorAll('.workshop-hours');
+        let hasValue = false;
+        let total = 0;
+        
+        inputs.forEach(function(input) {
+            const value = parseFloat(input.value);
+            if (!isNaN(value) && value > 0) {
+                hasValue = true;
+                total += value;
+            }
+        });
+        
+        if (!hasValue) {
+            alert('Необходимо указать время хотя бы для одного цеха');
+            return false;
+        }
+        
+        const message = 'Сохранить данные?\nОбщее время производства: ' + total.toFixed(1) + ' часов';
+        return confirm(message);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotal();
+        
+        const inputs = document.querySelectorAll('.workshop-hours');
+        inputs.forEach(function(input) {
+            input.addEventListener('input', calculateTotal);
+        });
+        
+        const form = document.getElementById('workshopsForm');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!validateWorkshopsForm()) {
+                    event.preventDefault();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

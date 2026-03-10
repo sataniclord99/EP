@@ -18,6 +18,9 @@
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Главная</a>
                 <a href="/products" class="nav-link {% if request.path == '/products' %}active{% endif %}">Продукция</a>
                 <a href="/workshops" class="nav-link {% if request.path == '/workshops' %}active{% endif %}">Цеха</a>
+                <a href="/calculator" class="nav-link {% if request.path == '/calculator' %}active{% endif %}">
+                    Калькулятор сырья
+                </a>
             </div>
         </div>
     </nav>
@@ -44,7 +47,6 @@
     </footer>
 
     <script>
-        // Автоматическое скрытие уведомлений через 5 секунд
         setTimeout(function() {
             var alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {

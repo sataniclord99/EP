@@ -8,25 +8,21 @@ def read_excel_file(filepath, sheet_index=0):
     workbook = openpyxl.load_workbook(filepath, data_only=True)
     sheet = workbook.worksheets[sheet_index]
     
-    # Получаем заголовки из первой строки и очищаем их от лишних пробелов
     headers = []
     for cell in sheet[1]:
         if cell.value:
-            # Удаляем лишние пробелы и символы
             header = str(cell.value).strip()
             headers.append(header)
             print(f"Найден заголовок: '{header}'")
     
     print(f"Всего заголовков: {len(headers)}")
     
-    # Читаем данные со второй строки
     data = []
     for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), 2):
-        if any(cell is not None for cell in row):  # Пропускаем пустые строки
+        if any(cell is not None for cell in row):
             row_data = {}
             for i, value in enumerate(row):
                 if i < len(headers):
-                    # Преобразуем значение в строку, если это необходимо
                     if value is not None:
                         if isinstance(value, (int, float)):
                             value = str(value).replace(',', '.')
@@ -99,18 +95,15 @@ def import_workshops(conn, filepath):
     data = read_excel_file(filepath)
     cur = conn.cursor()
     
-    # Сначала посмотрим, какие ключи есть в данных
     if data:
         print(f"Доступные ключи в первой записи: {list(data[0].keys())}")
     
     count = 0
     for row in data:
         try:
-            # Пробуем разные варианты названий столбцов
             workshop_name = row.get('Название цеха') or row.get('Название цеха')
             workshop_type = row.get('Тип цеха')
             
-            # Пробуем разные варианты для количества человек
             employee_count = None
             for key in row.keys():
                 if 'человек' in key.lower() or 'количество' in key.lower():
@@ -119,7 +112,6 @@ def import_workshops(conn, filepath):
                     break
             
             if workshop_name and workshop_type and employee_count is not None:
-                # Преобразуем employee_count в число
                 if isinstance(employee_count, str):
                     employee_count = employee_count.replace(',', '.').strip()
                 employee_count = float(employee_count)
@@ -152,7 +144,6 @@ def import_products(conn, filepath):
     data = read_excel_file(filepath)
     cur = conn.cursor()
     
-    # Получаем справочные данные
     cur.execute("SELECT id, name FROM product_types")
     product_types = {row[1].strip() if row[1] else '': row[0] for row in cur.fetchall()}
     print(f"Найдено типов продукции: {product_types}")
@@ -203,7 +194,7 @@ def import_products(conn, filepath):
     
     if errors:
         print("\nОшибки при импорте продуктов:")
-        for error in errors[:5]:  # Покажем первые 5 ошибок
+        for error in errors[:5]:
             print(f"  {error}")
     
     print(f"Импортировано {count} продуктов\n")
@@ -214,7 +205,6 @@ def import_product_workshops(conn, filepath):
     data = read_excel_file(filepath)
     cur = conn.cursor()
     
-    # Получаем справочные данные
     cur.execute("SELECT id, name FROM products")
     products = {}
     for row in cur.fetchall():
@@ -241,7 +231,6 @@ def import_product_workshops(conn, filepath):
                 workshop_id = workshops.get(workshop_name.strip())
                 
                 if product_id and workshop_id:
-                    # Преобразуем часы в число
                     if isinstance(hours, str):
                         hours = hours.replace(',', '.').strip()
                     hours = float(hours)
@@ -266,7 +255,7 @@ def import_product_workshops(conn, filepath):
     
     if errors:
         print("\nОшибки при импорте связей:")
-        for error in errors[:10]:  # Покажем первые 10 ошибок
+        for error in errors[:10]:
             print(f"  {error}")
     
     print(f"Импортировано {count} связей продукция-цех\n")
@@ -281,14 +270,12 @@ def check_excel_file_structure(filepath):
         print(f"Листов: {len(workbook.sheetnames)}")
         print(f"Активный лист: {sheet.title}")
         
-        # Заголовки
         headers = []
         for cell in sheet[1]:
             if cell.value:
                 headers.append(str(cell.value))
         print(f"Заголовки: {headers}")
         
-        # Первые 3 строки данных
         print("\nПервые 3 строки данных:")
         for i, row in enumerate(sheet.iter_rows(min_row=2, max_row=5, values_only=True), 2):
             if any(cell is not None for cell in row):
@@ -301,7 +288,6 @@ def check_excel_file_structure(filepath):
         return False
 
 def main():
-    # Проверяем наличие необходимых библиотек
     try:
         import openpyxl
         print("✓ openpyxl загружен")
@@ -310,7 +296,6 @@ def main():
         print("  Установите: pip install openpyxl==3.1.2")
         return
     
-    # Подключение к БД
     try:
         conn = psycopg2.connect(
             host=Config.DB_HOST,
@@ -328,7 +313,6 @@ def main():
     try:
         print("\n=== Начинаем импорт данных ===\n")
         
-        # Создаем папку data если её нет
         import os
         if not os.path.exists('data'):
             os.makedirs('data')
@@ -336,21 +320,17 @@ def main():
             print("Поместите файлы Excel в папку 'data'")
             return
         
-        # Проверяем структуру файлов перед импортом
         check_excel_file_structure('data/Workshops_import.xlsx')
         
-        # Импорт справочников (важен порядок)
         import_material_types(conn, 'data/Material_type_import.xlsx')
         import_product_types(conn, 'data/Product_type_import.xlsx')
         import_workshops(conn, 'data/Workshops_import.xlsx')
         
-        # Импорт основной информации
         import_products(conn, 'data/Products_import.xlsx')
         import_product_workshops(conn, 'data/Product_workshops_import.xlsx')
         
         print("\n=== Импорт данных завершен! ===")
         
-        # Покажем статистику
         cur = conn.cursor()
         cur.execute("SELECT COUNT(*) FROM material_types")
         print(f"Типов материалов: {cur.fetchone()[0]}")
